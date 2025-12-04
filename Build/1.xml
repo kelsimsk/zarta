@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Module>
+<ModulePrefs title="Google.com" />
+<Content type="html"><![CDATA[
+
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <base href="https://cdn.jsdelivr.net/gh/genizy/web-port@main/bloodmoney/">
+    <link rel="icon" href="icon/icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="icon/icon.png">
+    <link rel="stylesheet" type="text/css" href="fonts/gamefont.css">
+    <title>BLOODMONEY!</title>
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        #gameContainer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 816px;     /* RPG Maker MV standart oyun alanı 816×624 */
+            height: 624px;
+            max-width: 95vw;
+            max-height: 95vh;
+        }
+
+        canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+            image-rendering: pixelated;     /* pikseller net kalsın */
+            image-rendering: crisp-edges;
+        }
+
+        /* Mobil kontrollerin oyun alanına taşmaması için */
+        .nipplejs, div[style*="z-index: 9999"], div[style*="z-index:9999"] {
+            pointer-events: auto !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="gameContainer">
+        <!-- Oyun buraya kendini koyuyor (RPG Maker otomatik olarak body’ye canvas ekler) -->
+    </div>
+
+    <!-- Tüm scriptler -->
+    <script src="js/libs/pixi.js"></script>
+    <script src="js/libs/pixi-tilemap.js"></script>
+    <script src="js/libs/pixi-picture.js"></script>
+    <script src="js/libs/fpsmeter.js"></script>
+    <script src="js/libs/lz-string.js"></script>
+    <script src="js/libs/iphone-inline-video.browser.js"></script>
+
+    <script src="js/rpg_core.js"></script>
+    <script src="js/rpg_managers.js"></script>
+    <script src="js/rpg_objects.js"></script>
+    <script src="js/rpg_scenes.js"></script>
+    <script src="js/rpg_sprites.js"></script>
+    <script src="js/rpg_windows.js"></script>
+    <script src="js/plugins.js"></script>
+    <script src="js/main.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.9.0/nipplejs.min.js"></script>
+
+    <script>
+        // Ekranı her zaman ortala ve 816×624 oranını koru
+        function resizeGame() {
+            const container = document.getElementById("gameContainer");
+            const gameWidth = 816;
+            const gameHeight = 624;
+            const ratio = gameWidth / gameHeight;
+
+            let newWidth = window.innerWidth * 0.95;
+            let newHeight = newWidth / ratio;
+
+            if (newHeight > window.innerHeight * 0.95) {
+                newHeight = window.innerHeight * 0.95;
+                newWidth = newHeight * ratio;
+            }
+
+            container.style.width = newWidth + "px";
+            container.style.height = newHeight + "px";
+        }
+
+        window.addEventListener("resize", resizeGame);
+        window.addEventListener("orientationchange", resizeGame);
+        // İlk yüklemede de çalıştır
+        setTimeout(resizeGame, 100);
+
+        // Mobil kontroller (sadece mobilde)
+        (function () {
+            if (!/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) return;
+
+            const wait = setInterval(() => {
+                if (window.fullSetupComplete) {
+                    clearInterval(wait);
+
+                    const joystickZone = document.createElement("div");
+                    joystickZone.style.cssText = "position:fixed; left:20px; bottom:20px; width:150px; height:150px; z-index:99999;";
+                    document.body.appendChild(joystickZone);
+
+                    const joystick = nipplejs.create({
+                        zone: joystickZone,
+                        mode: "static",
+                        position: { left: "50%", top: "50%" },
+                        color: "red",
+                        size: 100
+                    });
+
+                    joystick.on("move", (evt, data) => {
+                        if (!data.direction) return;
+                        const dir = data.direction.angle;
+                        ["up","down","left","right"].forEach(k => {
+                            if (k === dir) fakeInput.down(k);
+                            else fakeInput.up(k);
+                        });
+                    });
+
+                    joystick.on("end", () => {
+                        ["up","down","left","right"].forEach(k => fakeInput.up(k));
+                    });
+
+                    const btn = (text, key, b, r, color) => {
+                        const el = document.createElement("div");
+                        el.textContent = text;
+                        el.style.cssText = `position:fixed; bottom:${b}; right:${r}; width:68px; height:68px; 
+                                            background:${color}; color:#fff; border-radius:50%; 
+                                            display:flex; align-items:center; justify-content:center;
+                                            font-weight:bold; font-size:14px; z-index:999999;`;
+                        el.ontouchstart = e => { e.preventDefault(); fakeInput.down(key); };
+                        el.ontouchend   = () => fakeInput.up(key);
+                        document.body.appendChild(el);
+                    };
+
+                    btn("OK",     "ok",      "30px",  "30px",  "#c62828");
+                    btn("CANCEL", "escape",  "30px",  "110px", "#8e24aa");
+                    btn("MENU",   "menu",    "110px", "110px", "#1565c0");
+                    btn("RUN",    "shift",   "110px", "30px",  "#ff9800");
+                }
+            }, 200);
+        })();
+    </script>
+</body>
+</html>
+
+
+
+]]></Content>
+</Module>
